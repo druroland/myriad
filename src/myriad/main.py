@@ -85,11 +85,7 @@ def create_app(config_dir: Path | None = None) -> FastAPI:
         """Redirect to setup if no users exist."""
         # Skip for static files and auth routes
         path = request.url.path
-        if (
-            path.startswith("/static")
-            or path.startswith("/auth")
-            or path == "/check-setup"
-        ):
+        if path.startswith("/static") or path.startswith("/auth") or path == "/check-setup":
             return await call_next(request)
 
         # Check if any users exist

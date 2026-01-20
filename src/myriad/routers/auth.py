@@ -1,10 +1,16 @@
 """Authentication router for login/logout/setup."""
 
-from fastapi import APIRouter, Form, Request, Response
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
+from starlette.responses import Response as StarletteResponse
 
-from myriad.core.dependencies import AppSettings, CurrentUserOptional, DbSession
+from myriad.core.dependencies import (
+    AppSettings,
+    CurrentUserOptional,
+    DbSession,
+    Templates,
+)
 from myriad.core.security import (
     authenticate_user,
     create_session,
@@ -12,28 +18,23 @@ from myriad.core.security import (
     delete_session,
     get_user_count,
 )
+from myriad.schemas.auth import SetupRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-def get_templates(settings: AppSettings) -> Jinja2Templates:
-    """Get Jinja2 templates instance."""
-    return Jinja2Templates(directory=str(settings.templates_dir))
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(
     request: Request,
-    settings: AppSettings,
+    templates: Templates,
     user: CurrentUserOptional,
     error: str | None = None,
-):
+) -> StarletteResponse:
     """Display the login page."""
     # If already logged in, redirect to dashboard
     if user:
         return RedirectResponse(url="/", status_code=303)
 
-    templates = get_templates(settings)
     return templates.TemplateResponse(
         "auth/login.html",
         {"request": request, "error": error},
@@ -43,17 +44,16 @@ async def login_page(
 @router.post("/login")
 async def login(
     request: Request,
-    response: Response,
     db: DbSession,
     settings: AppSettings,
+    templates: Templates,
     username: str = Form(...),
     password: str = Form(...),
-):
+) -> StarletteResponse:
     """Handle login form submission."""
     user = await authenticate_user(db, username, password)
 
     if not user:
-        templates = get_templates(settings)
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Invalid username or password"},
@@ -86,7 +86,7 @@ async def login(
 async def logout(
     request: Request,
     db: DbSession,
-):
+) -> RedirectResponse:
     """Handle logout."""
     # Get session from request state (set by dependency)
     session = getattr(request.state, "session", None)
@@ -102,16 +102,15 @@ async def logout(
 async def setup_page(
     request: Request,
     db: DbSession,
-    settings: AppSettings,
+    templates: Templates,
     error: str | None = None,
-):
+) -> StarletteResponse:
     """Display the initial setup page (create first user)."""
     # Check if any users exist
     user_count = await get_user_count(db)
     if user_count > 0:
         return RedirectResponse(url="/auth/login", status_code=303)
 
-    templates = get_templates(settings)
     return templates.TemplateResponse(
         "auth/setup.html",
         {"request": request, "error": error},
@@ -123,43 +122,37 @@ async def setup(
     request: Request,
     db: DbSession,
     settings: AppSettings,
+    templates: Templates,
     username: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
     display_name: str = Form(None),
-):
+) -> StarletteResponse:
     """Handle initial setup form submission."""
-    templates = get_templates(settings)
-
     # Check if any users exist
     user_count = await get_user_count(db)
     if user_count > 0:
         return RedirectResponse(url="/auth/login", status_code=303)
 
-    # Validate
-    if len(username) < 3:
-        return templates.TemplateResponse(
-            "auth/setup.html",
-            {"request": request, "error": "Username must be at least 3 characters"},
-            status_code=400,
+    # Validate using Pydantic schema
+    try:
+        setup_data = SetupRequest(
+            username=username,
+            password=password,
+            password_confirm=password_confirm,
+            display_name=display_name,
         )
-
-    if len(password) < 8:
+    except ValidationError as e:
+        # Extract first error message
+        error_msg = e.errors()[0]["msg"]
         return templates.TemplateResponse(
             "auth/setup.html",
-            {"request": request, "error": "Password must be at least 8 characters"},
-            status_code=400,
-        )
-
-    if password != password_confirm:
-        return templates.TemplateResponse(
-            "auth/setup.html",
-            {"request": request, "error": "Passwords do not match"},
+            {"request": request, "error": error_msg},
             status_code=400,
         )
 
     # Create user
-    user = await create_user(db, username, password, display_name or None)
+    user = await create_user(db, setup_data.username, setup_data.password, setup_data.display_name)
 
     # Create session
     session = await create_session(

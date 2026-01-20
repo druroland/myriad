@@ -112,9 +112,7 @@ class VMSnapshot(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # VM reference
-    vm_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("virtual_machines.id"), nullable=False
-    )
+    vm_id: Mapped[int] = mapped_column(Integer, ForeignKey("virtual_machines.id"), nullable=False)
     virtual_machine: Mapped[VirtualMachine] = relationship(
         "VirtualMachine", back_populates="snapshots"
     )
