@@ -1,0 +1,113 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard - Myriad{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <div class="d-flex gap-1">
+        <button class="btn" hx-post="/hosts/sync" hx-swap="none" hx-indicator="#sync-indicator">
+            <span class="htmx-indicator" id="sync-indicator">Syncing...</span>
+            <span>Sync All</span>
+        </button>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Total Hosts</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-success">{{ stats.online }}</div>
+        <div class="stat-label">Online</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-muted">{{ stats.offline }}</div>
+        <div class="stat-label">Offline</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.static_leases }}</div>
+        <div class="stat-label">Static Leases</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem;">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Locations</h2>
+            <span class="badge badge-secondary">{{ locations|length }}</span>
+        </div>
+        {% if locations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Network</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loc in locations %}
+                <tr>
+                    <td>{{ loc.name }}</td>
+                    <td class="text-mono text-muted">{{ loc.network_cidr or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted">No locations configured. Add locations to myriad.toml</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Integrations</h2>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Count</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>OPNsense</td>
+                    <td class="text-mono">{{ integrations.opnsense }}</td>
+                    <td>
+                        {% if integrations.opnsense > 0 %}
+                        <span class="badge badge-success">Configured</span>
+                        {% else %}
+                        <span class="badge badge-secondary">Not configured</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Unifi</td>
+                    <td class="text-mono">{{ integrations.unifi }}</td>
+                    <td>
+                        {% if integrations.unifi > 0 %}
+                        <span class="badge badge-success">Configured</span>
+                        {% else %}
+                        <span class="badge badge-secondary">Not configured</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h2 class="card-title">Quick Actions</h2>
+    </div>
+    <div class="d-flex gap-2" style="flex-wrap: wrap;">
+        <a href="/hosts" class="btn">View All Hosts</a>
+        <a href="/vms" class="btn">Manage VMs</a>
+        <a href="/network" class="btn">Network Overview</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+# Myriad Configuration
+# Non-sensitive configuration settings
+
+[server]
+host = "0.0.0.0"
+port = 8000
+debug = false
+
+[database]
+url = "sqlite+aiosqlite:///./myriad.db"
+
+# Network locations
+[[locations]]
+id = "home-lan"
+name = "Home LAN"
+network_cidr = "10.0.1.0/24"
+
+# Uncomment and configure as needed:
+# [[locations]]
+# id = "vps-frankfurt"
+# name = "VPS Frankfurt"
+# network_cidr = "10.100.0.0/24"
+
+# OPNsense integrations
+[[integrations.opnsense]]
+id = "opnsense-main"
+base_url = "https://10.0.1.1"
+credential_ref = "opnsense.main"
+location_id = "home-lan"
+verify_ssl = false  # Set to true if using valid SSL cert
+
+# Unifi integrations (Phase 3)
+# [[integrations.unifi]]
+# id = "unifi-main"
+# base_url = "https://10.0.1.2:8443"
+# credential_ref = "unifi.main"
+# site = "default"
+# location_id = "home-lan"
+# verify_ssl = false
+
+# Hypervisors (Phase 2)
+# [[hypervisors]]
+# id = "hypervisor-main"
+# name = "Main Hypervisor"
+# ssh_host = "10.0.1.10"
+# ssh_port = 22
+# ssh_user = "root"
+# ssh_key_ref = "ssh.homelab"
+# location_id = "home-lan"

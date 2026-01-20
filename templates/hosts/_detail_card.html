@@ -1,0 +1,71 @@
+<div class="card-header">
+    <h2 class="card-title">Host Information</h2>
+</div>
+<table>
+    <tbody>
+        <tr>
+            <th style="width: 40%;">MAC Address</th>
+            <td class="text-mono">{{ host.mac_address }}</td>
+        </tr>
+        <tr>
+            <th>IP Address</th>
+            <td class="text-mono">{{ host.ip_address or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Hostname</th>
+            <td>{{ host.hostname or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Display Name</th>
+            <td>{{ host.display_name or '-' }}</td>
+        </tr>
+        <tr>
+            <th>Type</th>
+            <td><span class="badge badge-secondary">{{ host.host_type.value }}</span></td>
+        </tr>
+        <tr>
+            <th>Discovery Source</th>
+            <td>
+                {% if host.discovery_source.value == 'opnsense_dhcp' %}
+                OPNsense DHCP{% if host.is_static_lease %} (static lease){% endif %}
+                {% elif host.discovery_source.value == 'unifi' %}
+                Unifi Controller
+                {% else %}
+                Manual
+                {% endif %}
+            </td>
+        </tr>
+        {% if host.vendor %}
+        <tr>
+            <th>Vendor</th>
+            <td>{{ host.vendor }}</td>
+        </tr>
+        {% endif %}
+        {% if host.location %}
+        <tr>
+            <th>Location</th>
+            <td>{{ host.location.name }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <th>First Seen</th>
+            <td>{{ host.first_seen.strftime('%Y-%m-%d %H:%M:%S') if host.first_seen else '-' }}</td>
+        </tr>
+        <tr>
+            <th>Last Seen</th>
+            <td>{{ host.last_seen.strftime('%Y-%m-%d %H:%M:%S') if host.last_seen else '-' }}</td>
+        </tr>
+        {% if host.lease_expires %}
+        <tr>
+            <th>Lease Expires</th>
+            <td>{{ host.lease_expires.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        {% endif %}
+        {% if host.notes %}
+        <tr>
+            <th>Notes</th>
+            <td>{{ host.notes }}</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>

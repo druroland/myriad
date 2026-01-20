@@ -1,0 +1,85 @@
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Name</th>
+                <th>IP Address</th>
+                <th>MAC Address</th>
+                <th>Type</th>
+                <th>Source</th>
+                <th>Last Seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for host in hosts %}
+            <tr>
+                <td>
+                    {% if host.status.value == 'online' %}
+                    <span class="badge badge-success">Online</span>
+                    {% elif host.status.value == 'offline' %}
+                    <span class="badge badge-secondary">Offline</span>
+                    {% else %}
+                    <span class="badge badge-warning">Unknown</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/hosts/{{ host.id }}">
+                        {{ host.display_name or host.hostname or host.mac_address }}
+                    </a>
+                    {% if host.display_name and host.hostname %}
+                    <br><small class="text-muted">{{ host.hostname }}</small>
+                    {% endif %}
+                </td>
+                <td class="text-mono">{{ host.ip_address or '-' }}</td>
+                <td class="text-mono text-muted">{{ host.mac_address }}</td>
+                <td>
+                    <span class="badge badge-secondary">{{ host.host_type.value }}</span>
+                </td>
+                <td class="text-muted">
+                    {% if host.discovery_source.value == 'opnsense_dhcp' %}
+                    OPNsense{% if host.is_static_lease %} (static){% endif %}
+                    {% elif host.discovery_source.value == 'unifi' %}
+                    Unifi
+                    {% else %}
+                    Manual
+                    {% endif %}
+                </td>
+                <td class="text-muted">
+                    {% if host.last_seen %}
+                    {{ host.last_seen.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                    Never
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center;" class="text-muted">
+                    No hosts found. Try syncing from your integrations.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if total > 0 %}
+<div class="pagination">
+    <span class="pagination-info">
+        Showing {{ ((page - 1) * page_size) + 1 }}-{{ [page * page_size, total]|min }} of {{ total }} hosts
+    </span>
+    <div style="margin-left: auto;">
+        {% if page > 1 %}
+        <button class="btn btn-sm" hx-get="/hosts/table?page={{ page - 1 }}&page_size={{ page_size }}" hx-target="#hosts-table">
+            Previous
+        </button>
+        {% endif %}
+        {% if page < total_pages %}
+        <button class="btn btn-sm" hx-get="/hosts/table?page={{ page + 1 }}&page_size={{ page_size }}" hx-target="#hosts-table">
+            Next
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

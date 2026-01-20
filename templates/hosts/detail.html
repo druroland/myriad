@@ -1,0 +1,89 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ host.display_name or host.hostname or host.mac_address }} - Myriad{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="/hosts" class="text-muted" style="font-size: 0.875rem;">&larr; Back to Hosts</a>
+        <h1 class="page-title mt-1">{{ host.display_name or host.hostname or host.mac_address }}</h1>
+    </div>
+    <div class="d-flex gap-1">
+        {% if host.status.value == 'online' %}
+        <span class="badge badge-success" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Online</span>
+        {% elif host.status.value == 'offline' %}
+        <span class="badge badge-secondary" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Offline</span>
+        {% else %}
+        <span class="badge badge-warning" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Unknown</span>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem;">
+    <div id="host-detail" class="card">
+        {% include "hosts/_detail_card.html" %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Edit Host</h2>
+        </div>
+        <form hx-post="/hosts/{{ host.id }}/edit" hx-target="#host-detail" hx-swap="innerHTML">
+            <div class="form-group">
+                <label class="form-label" for="display_name">Display Name</label>
+                <input type="text" id="display_name" name="display_name" class="form-control"
+                       value="{{ host.display_name or '' }}" placeholder="Custom name for this host">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="host_type">Type</label>
+                <select id="host_type" name="host_type" class="form-control">
+                    <option value="unknown" {% if host.host_type.value == 'unknown' %}selected{% endif %}>Unknown</option>
+                    <option value="server" {% if host.host_type.value == 'server' %}selected{% endif %}>Server</option>
+                    <option value="workstation" {% if host.host_type.value == 'workstation' %}selected{% endif %}>Workstation</option>
+                    <option value="laptop" {% if host.host_type.value == 'laptop' %}selected{% endif %}>Laptop</option>
+                    <option value="phone" {% if host.host_type.value == 'phone' %}selected{% endif %}>Phone</option>
+                    <option value="tablet" {% if host.host_type.value == 'tablet' %}selected{% endif %}>Tablet</option>
+                    <option value="iot" {% if host.host_type.value == 'iot' %}selected{% endif %}>IoT Device</option>
+                    <option value="network" {% if host.host_type.value == 'network' %}selected{% endif %}>Network Device</option>
+                    <option value="printer" {% if host.host_type.value == 'printer' %}selected{% endif %}>Printer</option>
+                    <option value="media" {% if host.host_type.value == 'media' %}selected{% endif %}>Media Device</option>
+                    <option value="gaming" {% if host.host_type.value == 'gaming' %}selected{% endif %}>Gaming Device</option>
+                    <option value="appliance" {% if host.host_type.value == 'appliance' %}selected{% endif %}>Appliance</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Additional notes about this host">{{ host.notes or '' }}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-header">
+        <h2 class="card-title">Actions</h2>
+    </div>
+    <div class="d-flex gap-2" style="flex-wrap: wrap;">
+        {% if host.ip_address %}
+        <button class="btn" onclick="navigator.clipboard.writeText('{{ host.ip_address }}')">
+            Copy IP Address
+        </button>
+        {% endif %}
+        <button class="btn" onclick="navigator.clipboard.writeText('{{ host.mac_address }}')">
+            Copy MAC Address
+        </button>
+        {% if host.discovery_source.value == 'manual' %}
+        <button class="btn btn-danger"
+                hx-delete="/hosts/api/{{ host.id }}"
+                hx-confirm="Are you sure you want to delete this host?"
+                hx-on::after-request="window.location.href='/hosts'">
+            Delete Host
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
