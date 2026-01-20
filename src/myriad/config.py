@@ -52,7 +52,7 @@ class UnifiIntegrationConfig(BaseModel):
 
 
 class HypervisorConfig(BaseModel):
-    """Hypervisor configuration."""
+    """Hypervisor configuration (legacy SSH-based)."""
 
     id: str
     name: str | None = None
@@ -63,11 +63,23 @@ class HypervisorConfig(BaseModel):
     location_id: str | None = None
 
 
+class ProxmoxIntegrationConfig(BaseModel):
+    """Proxmox VE integration configuration."""
+
+    id: str
+    base_url: str  # e.g., "https://192.168.1.10:8006"
+    credential_ref: str  # e.g., "proxmox.borgcube"
+    node: str | None = None  # Filter to specific node, None = all nodes
+    location_id: str | None = None
+    verify_ssl: bool = True
+
+
 class IntegrationsConfig(BaseModel):
     """All integrations configuration."""
 
     opnsense: list[OPNsenseIntegrationConfig] = Field(default_factory=list)
     unifi: list[UnifiIntegrationConfig] = Field(default_factory=list)
+    proxmox: list[ProxmoxIntegrationConfig] = Field(default_factory=list)
 
 
 class OPNsenseCredentials(BaseModel):
@@ -91,12 +103,20 @@ class SSHKeyConfig(BaseModel):
     passphrase: str | None = None
 
 
+class ProxmoxCredentials(BaseModel):
+    """Proxmox API token credentials."""
+
+    token_id: str  # e.g., "root@pam!myriad"
+    token_secret: str  # UUID format token
+
+
 class SecretsConfig(BaseModel):
     """Secrets configuration loaded from secrets.toml."""
 
     opnsense: dict[str, OPNsenseCredentials] = Field(default_factory=dict)
     unifi: dict[str, UnifiCredentials] = Field(default_factory=dict)
     ssh: dict[str, SSHKeyConfig] = Field(default_factory=dict)
+    proxmox: dict[str, ProxmoxCredentials] = Field(default_factory=dict)
 
 
 class Settings(BaseSettings):
@@ -133,6 +153,7 @@ def parse_secrets(secrets_data: dict[str, Any]) -> SecretsConfig:
     opnsense_creds = {}
     unifi_creds = {}
     ssh_keys = {}
+    proxmox_creds = {}
 
     # Parse OPNsense credentials
     if "opnsense" in secrets_data:
@@ -149,7 +170,17 @@ def parse_secrets(secrets_data: dict[str, Any]) -> SecretsConfig:
         for key, value in secrets_data["ssh"].items():
             ssh_keys[key] = SSHKeyConfig(**value)
 
-    return SecretsConfig(opnsense=opnsense_creds, unifi=unifi_creds, ssh=ssh_keys)
+    # Parse Proxmox credentials
+    if "proxmox" in secrets_data:
+        for key, value in secrets_data["proxmox"].items():
+            proxmox_creds[key] = ProxmoxCredentials(**value)
+
+    return SecretsConfig(
+        opnsense=opnsense_creds,
+        unifi=unifi_creds,
+        ssh=ssh_keys,
+        proxmox=proxmox_creds,
+    )
 
 
 def load_settings(config_dir: Path | None = None) -> Settings:
@@ -177,6 +208,7 @@ def load_settings(config_dir: Path | None = None) -> Settings:
             OPNsenseIntegrationConfig(**item) for item in integrations_data.get("opnsense", [])
         ],
         unifi=[UnifiIntegrationConfig(**item) for item in integrations_data.get("unifi", [])],
+        proxmox=[ProxmoxIntegrationConfig(**item) for item in integrations_data.get("proxmox", [])],
     )
 
     # Parse locations if present

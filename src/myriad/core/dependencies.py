@@ -12,7 +12,7 @@ from myriad.core.database import get_session
 from myriad.core.security import get_session_with_user
 from myriad.core.templates import get_templates
 from myriad.models import User
-from myriad.services import HostService, LocationService, SyncService
+from myriad.services import HostService, LocationService, ProxmoxService, SyncService
 
 # Type aliases for dependency injection
 DbSession = Annotated[AsyncSession, Depends(get_session)]
@@ -44,9 +44,15 @@ def get_sync_service(db: DbSession, settings: AppSettings) -> SyncService:
     return SyncService(db, settings)
 
 
+def get_proxmox_service(db: DbSession, settings: AppSettings) -> ProxmoxService:
+    """Get ProxmoxService instance."""
+    return ProxmoxService(db, settings)
+
+
 HostServiceDep = Annotated[HostService, Depends(get_host_service)]
 LocationServiceDep = Annotated[LocationService, Depends(get_location_service)]
 SyncServiceDep = Annotated[SyncService, Depends(get_sync_service)]
+ProxmoxServiceDep = Annotated[ProxmoxService, Depends(get_proxmox_service)]
 
 
 async def get_current_user_optional(

@@ -87,6 +87,11 @@ class Host(Base, TimestampMixin):
     # Unifi enrichment data (stored as JSON-compatible fields)
     unifi_client_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
+    # VM link (if this host is a virtual machine)
+    virtual_machine: Mapped["VirtualMachine | None"] = relationship(  # noqa: F821
+        "VirtualMachine", back_populates="host", uselist=False
+    )
+
     def __repr__(self) -> str:
         name = self.display_name or self.hostname or self.mac_address
         return f"<Host {self.id}: {name}>"
