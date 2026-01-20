@@ -5,9 +5,11 @@ from myriad.models.host import DiscoverySource, Host, HostStatus, HostType
 from myriad.models.hypervisor import (
     Hypervisor,
     HypervisorStatus,
+    HypervisorType,
     VirtualMachine,
     VMSnapshot,
     VMState,
+    VMType,
 )
 from myriad.models.integration import AuditLog, Integration, IntegrationStatus, IntegrationType
 from myriad.models.location import Location
@@ -23,9 +25,11 @@ __all__ = [
     "DiscoverySource",
     "Hypervisor",
     "HypervisorStatus",
+    "HypervisorType",
     "VirtualMachine",
     "VMSnapshot",
     "VMState",
+    "VMType",
     "Integration",
     "IntegrationType",
     "IntegrationStatus",

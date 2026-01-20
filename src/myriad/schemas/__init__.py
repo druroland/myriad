@@ -9,6 +9,15 @@ from myriad.schemas.host import (
     HostUpdate,
 )
 from myriad.schemas.location import LocationCreate, LocationResponse, LocationUpdate
+from myriad.schemas.vm import (
+    HypervisorResponse,
+    VMDetailResponse,
+    VMListResponse,
+    VMResponse,
+    VMSnapshotResponse,
+    VMStatsResponse,
+    VMSyncResult,
+)
 
 __all__ = [
     "LoginRequest",
@@ -23,4 +32,11 @@ __all__ = [
     "LocationCreate",
     "LocationUpdate",
     "LocationResponse",
+    "HypervisorResponse",
+    "VMResponse",
+    "VMDetailResponse",
+    "VMListResponse",
+    "VMSnapshotResponse",
+    "VMStatsResponse",
+    "VMSyncResult",
 ]

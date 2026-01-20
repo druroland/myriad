@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from myriad.config import init_settings
 from myriad.core.database import close_db, get_session_context, init_db
 from myriad.core.security import get_user_count
-from myriad.routers import auth_router, dashboard_router, hosts_router
+from myriad.routers import auth_router, dashboard_router, hosts_router, vms_router
 from myriad.services import LocationService
 
 # Configure logging
@@ -78,6 +78,7 @@ def create_app(config_dir: Path | None = None) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(dashboard_router)
     app.include_router(hosts_router)
+    app.include_router(vms_router)
 
     # Middleware to check for setup
     @app.middleware("http")
