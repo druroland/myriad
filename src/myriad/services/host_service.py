@@ -93,7 +93,7 @@ class HostService:
 
     async def delete(self, host: Host) -> None:
         """Delete a host."""
-        await self.db.delete(host)
+        self.db.delete(host)  # delete() is sync in SQLAlchemy 2.0
         await self.db.flush()
 
     async def upsert_from_discovery(
@@ -176,7 +176,17 @@ class HostService:
 
     @staticmethod
     def _normalize_mac(mac: str) -> str:
-        """Normalize MAC address to lowercase with colons."""
+        """Normalize MAC address to lowercase with colons.
+
+        Args:
+            mac: MAC address in any common format
+
+        Returns:
+            Normalized MAC address (lowercase, colon-separated)
+
+        Raises:
+            ValueError: If MAC address format is invalid
+        """
         mac = mac.lower().replace("-", ":").replace(".", ":")
         parts = mac.split(":")
 
@@ -186,6 +196,11 @@ class HostService:
             if len(clean) == 12:
                 parts = [clean[i : i + 2] for i in range(0, 12, 2)]
             else:
-                return mac
+                raise ValueError(f"Invalid MAC address format: {mac}")
+
+        # Validate each part is valid hex
+        for part in parts:
+            if len(part) != 2 or not all(c in "0123456789abcdef" for c in part):
+                raise ValueError(f"Invalid MAC address format: {mac}")
 
         return ":".join(parts)

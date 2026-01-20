@@ -1,6 +1,6 @@
 """Authentication schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LoginRequest(BaseModel):
@@ -36,3 +36,10 @@ class SetupRequest(BaseModel):
     password: str = Field(..., min_length=8)
     password_confirm: str = Field(..., min_length=8)
     display_name: str | None = Field(None, max_length=100)
+
+    @model_validator(mode="after")
+    def passwords_match(self) -> "SetupRequest":
+        """Validate that password and password_confirm match."""
+        if self.password != self.password_confirm:
+            raise ValueError("Passwords do not match")
+        return self

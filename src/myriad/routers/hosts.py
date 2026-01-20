@@ -2,36 +2,34 @@
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from starlette.responses import Response
 
-from myriad.core.dependencies import AppSettings, AuthenticatedUser, DbSession
+from myriad.core.dependencies import (
+    AuthenticatedUser,
+    HostServiceDep,
+    LocationServiceDep,
+    SyncServiceDep,
+    Templates,
+)
 from myriad.models import HostStatus
 from myriad.schemas import HostCreate, HostResponse, HostSyncResult, HostUpdate
-from myriad.services import HostService, LocationService, SyncService
 
 router = APIRouter(prefix="/hosts", tags=["hosts"])
-
-
-def get_templates(settings: AppSettings) -> Jinja2Templates:
-    """Get Jinja2 templates instance."""
-    return Jinja2Templates(directory=str(settings.templates_dir))
 
 
 @router.get("", response_class=HTMLResponse)
 async def hosts_page(
     request: Request,
-    db: DbSession,
-    settings: AppSettings,
     user: AuthenticatedUser,
+    templates: Templates,
+    host_service: HostServiceDep,
+    location_service: LocationServiceDep,
     location: str | None = None,
     status: HostStatus | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=10, le=100),
-):
+) -> Response:
     """Display the hosts list page."""
-    host_service = HostService(db)
-    location_service = LocationService(db)
-
     offset = (page - 1) * page_size
     hosts, total = await host_service.get_all(
         location_id=location,
@@ -43,7 +41,6 @@ async def hosts_page(
     locations = await location_service.get_all()
     total_pages = (total + page_size - 1) // page_size
 
-    templates = get_templates(settings)
     return templates.TemplateResponse(
         "hosts/list.html",
         {
@@ -64,17 +61,15 @@ async def hosts_page(
 @router.get("/table", response_class=HTMLResponse)
 async def hosts_table(
     request: Request,
-    db: DbSession,
-    settings: AppSettings,
     user: AuthenticatedUser,
+    templates: Templates,
+    host_service: HostServiceDep,
     location: str | None = None,
     status: HostStatus | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=10, le=100),
-):
+) -> Response:
     """Get just the hosts table (for HTMX partial updates)."""
-    host_service = HostService(db)
-
     offset = (page - 1) * page_size
     hosts, total = await host_service.get_all(
         location_id=location,
@@ -85,7 +80,6 @@ async def hosts_table(
 
     total_pages = (total + page_size - 1) // page_size
 
-    templates = get_templates(settings)
     return templates.TemplateResponse(
         "hosts/_table.html",
         {
@@ -103,18 +97,16 @@ async def hosts_table(
 async def host_detail(
     request: Request,
     host_id: int,
-    db: DbSession,
-    settings: AppSettings,
     user: AuthenticatedUser,
-):
+    templates: Templates,
+    host_service: HostServiceDep,
+) -> Response:
     """Display host detail page."""
-    host_service = HostService(db)
     host = await host_service.get_by_id(host_id)
 
     if not host:
         raise HTTPException(status_code=404, detail="Host not found")
 
-    templates = get_templates(settings)
     return templates.TemplateResponse(
         "hosts/detail.html",
         {
@@ -129,12 +121,11 @@ async def host_detail(
 async def host_edit(
     request: Request,
     host_id: int,
-    db: DbSession,
-    settings: AppSettings,
     user: AuthenticatedUser,
-):
+    templates: Templates,
+    host_service: HostServiceDep,
+) -> Response:
     """Handle host edit form submission."""
-    host_service = HostService(db)
     host = await host_service.get_by_id(host_id)
 
     if not host:
@@ -151,7 +142,6 @@ async def host_edit(
 
     host = await host_service.update(host, update_data)
 
-    templates = get_templates(settings)
     return templates.TemplateResponse(
         "hosts/_detail_card.html",
         {
@@ -163,33 +153,29 @@ async def host_edit(
 
 # API endpoints for HTMX/JSON
 
+
 @router.post("/sync/{integration_id}")
 async def sync_hosts(
     integration_id: str,
-    db: DbSession,
-    settings: AppSettings,
     user: AuthenticatedUser,
+    sync_service: SyncServiceDep,
 ) -> HostSyncResult:
     """Trigger a host sync from an OPNsense integration."""
-    sync_service = SyncService(db, settings)
-
     try:
         result = await sync_service.sync_opnsense(integration_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except ConnectionError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @router.post("/sync")
 async def sync_all_hosts(
-    db: DbSession,
-    settings: AppSettings,
     user: AuthenticatedUser,
+    sync_service: SyncServiceDep,
 ) -> list[HostSyncResult]:
     """Trigger a sync from all configured integrations."""
-    sync_service = SyncService(db, settings)
     results = await sync_service.sync_all_opnsense()
     return results
 
@@ -197,11 +183,10 @@ async def sync_all_hosts(
 @router.get("/api/{host_id}", response_model=HostResponse)
 async def get_host_api(
     host_id: int,
-    db: DbSession,
     user: AuthenticatedUser,
+    host_service: HostServiceDep,
 ) -> HostResponse:
     """Get host by ID (JSON API)."""
-    host_service = HostService(db)
     host = await host_service.get_by_id(host_id)
 
     if not host:
@@ -213,12 +198,10 @@ async def get_host_api(
 @router.post("/api", response_model=HostResponse)
 async def create_host_api(
     data: HostCreate,
-    db: DbSession,
     user: AuthenticatedUser,
+    host_service: HostServiceDep,
 ) -> HostResponse:
     """Create a new host (JSON API)."""
-    host_service = HostService(db)
-
     # Check for duplicate MAC
     existing = await host_service.get_by_mac(data.mac_address)
     if existing:
@@ -231,11 +214,10 @@ async def create_host_api(
 @router.delete("/api/{host_id}")
 async def delete_host_api(
     host_id: int,
-    db: DbSession,
     user: AuthenticatedUser,
-):
+    host_service: HostServiceDep,
+) -> dict[str, str | int]:
     """Delete a host (JSON API)."""
-    host_service = HostService(db)
     host = await host_service.get_by_id(host_id)
 
     if not host:

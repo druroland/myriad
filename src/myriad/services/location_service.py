@@ -47,7 +47,7 @@ class LocationService:
 
     async def delete(self, location: Location) -> None:
         """Delete a location."""
-        await self.db.delete(location)
+        self.db.delete(location)  # delete() is sync in SQLAlchemy 2.0
         await self.db.flush()
 
     async def get_with_host_counts(self) -> list[dict]:
@@ -71,7 +71,9 @@ class LocationService:
             for row in rows
         ]
 
-    async def ensure_from_config(self, location_id: str, name: str, network_cidr: str | None) -> Location:
+    async def ensure_from_config(
+        self, location_id: str, name: str, network_cidr: str | None
+    ) -> Location:
         """Ensure a location exists from config, creating if necessary."""
         location = await self.get_by_id(location_id)
 
